@@ -1,0 +1,115 @@
+import java.util.Random;
+
+public class NeuralNetwork {
+    private int inputSize;
+    private int hiddenSize;
+    private int outputSize;
+    private double[][] weightsInputHidden;
+    private double[][] weightsHiddenOutput;
+    private double[] hiddenLayer;
+    private double[] outputLayer;
+    private double learningRate = 0.1;
+
+    public NeuralNetwork(int inputSize, int hiddenSize, int outputSize) {
+        this.inputSize = inputSize;
+        this.hiddenSize = hiddenSize;
+        this.outputSize = outputSize;
+
+        // Initialize weights
+        Random random = new Random();
+        weightsInputHidden = new double[inputSize][hiddenSize];
+        weightsHiddenOutput = new double[hiddenSize][outputSize];
+        for (int i = 0; i < inputSize; i++) {
+            for (int j = 0; j < hiddenSize; j++) {
+                weightsInputHidden[i][j] = random.nextDouble();
+            }
+        }
+        for (int i = 0; i < hiddenSize; i++) {
+            for (int j = 0; j < outputSize; j++) {
+                weightsHiddenOutput[i][j] = random.nextDouble();
+            }
+        }
+
+        hiddenLayer = new double[hiddenSize];
+        outputLayer = new double[outputSize];
+    }
+
+    private double sigmoid(double x) {
+        return 1 / (1 + Math.exp(-x));
+    }
+
+    public double[] forward(double[] inputs) {
+        // Forward pass through the network
+        for (int i = 0; i < hiddenSize; i++) {
+            double sum = 0;
+            for (int j = 0; j < inputSize; j++) {
+                sum += inputs[j] * weightsInputHidden[j][i];
+            }
+            hiddenLayer[i] = sigmoid(sum);
+        }
+
+        for (int i = 0; i < outputSize; i++) {
+            double sum = 0;
+            for (int j = 0; j < hiddenSize; j++) {
+                sum += hiddenLayer[j] * weightsHiddenOutput[j][i];
+            }
+            outputLayer[i] = sigmoid(sum);
+        }
+
+        return outputLayer;
+    }
+
+    public void train(double[] inputs, double[] targets) {
+        // Perform forward pass
+        forward(inputs);
+
+        // Backpropagation
+        double[] outputErrors = new double[outputSize];
+        for (int i = 0; i < outputSize; i++) {
+            outputErrors[i] = outputLayer[i] * (1 - outputLayer[i]) * (targets[i] - outputLayer[i]);
+        }
+
+        double[] hiddenErrors = new double[hiddenSize];
+        for (int i = 0; i < hiddenSize; i++) {
+            double error = 0;
+            for (int j = 0; j < outputSize; j++) {
+                error += outputErrors[j] * weightsHiddenOutput[i][j];
+            }
+            hiddenErrors[i] = hiddenLayer[i] * (1 - hiddenLayer[i]) * error;
+        }
+
+        // Update weights
+        for (int i = 0; i < inputSize; i++) {
+            for (int j = 0; j < hiddenSize; j++) {
+                weightsInputHidden[i][j] += learningRate * inputs[i] * hiddenErrors[j];
+            }
+        }
+
+        for (int i = 0; i < hiddenSize; i++) {
+            for (int j = 0; j < outputSize; j++) {
+                weightsHiddenOutput[i][j] += learningRate * hiddenLayer[i] * outputErrors[j];
+            }
+        }
+    }
+
+    public static void main(String[] args) {
+        NeuralNetwork neuralNetwork = new NeuralNetwork(2, 3, 1);
+
+        // Example training data (XOR problem)
+        double[][] inputs = {{0, 0}, {0, 1}, {1, 0}, {1, 1}};
+        double[][] targets = {{0}, {1}, {1}, {0}};
+
+        // Train the network
+        for (int epoch = 0; epoch < 10000; epoch++) {
+            for (int i = 0; i < inputs.length; i++) {
+                neuralNetwork.train(inputs[i], targets[i]);
+            }
+        }
+
+        // Test the trained network
+        for (int i = 0; i < inputs.length; i++) {
+            double[] output = neuralNetwork.forward(inputs[i]);
+            System.out.println("Input: " + inputs[i][0] + ", " + inputs[i][1] + " Output: " + output[0]);
+        }
+    }
+}
